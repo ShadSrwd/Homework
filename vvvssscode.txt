@@ -1,0 +1,369 @@
+#include <stdio.h>
+#include <unistd.h>
+
+void washingMachine() {
+    printf("Press Enter to start the washing machine...");
+    while(getchar() != '\n');  // Wait for Enter key
+
+    printf("\nStep 1: Filling water...\n");
+    sleep(2);  // Wait 2 seconds
+
+    printf("Step 2: Washing clothes...\n");
+    sleep(3);  // Wait 3 seconds
+
+    printf("Step 3: Rinsing...\n");
+    sleep(2);  // Wait 2 seconds
+
+    printf("Step 4: Spinning dry...\n");
+    sleep(2);  // Wait 2 seconds
+
+    printf("\nCycle complete! Your clothes are clean.\n");
+}
+
+int main() {
+    printf("=== Washing Machine Simulator ===\n");
+    washingMachine();
+    return 0;
+}
+
+washing machine 
+---------------------------------
+
+bitwise 
+
+
+#include <stdio.h>
+
+int main() {
+    unsigned char washingMachine = 0;  // All bits off initially
+
+    // Turn on power (bit 0)
+    washingMachine |= 1 << 0;
+    printf("Power ON\n");
+
+    // Start filling water (bit 1)
+    washingMachine |= 1 << 1;
+    printf("Filling water...\n");
+
+    // Check if power is on before spinning
+    if (washingMachine & (1 << 0)) {
+        // Start spinning (bit 2)
+        washingMachine |= 1 << 2;
+        printf("Spinning clothes...\n");
+    } else {
+        printf("Error: Power is OFF. Cannot spin.\n");
+    }
+
+    printf("\nFinal state: %d (binary: ", washingMachine);
+    for(int i = 7; i >= 0; i--) {
+        printf("%d", (washingMachine >> i) & 1);
+    }
+    printf(")\n");
+
+    return 0;
+}
+
+
+--------------------
+
+1.
+
+
+printf("Original value: %d\n", val); // 10
+printf("Value after postfix increment: %d\n", val++); // 10
+printf("Value after prefix increment: %d\n", ++val); // 12
+
+// Demonstrating unary operators
+printf("Unary minus: %d\n", -val); // -12
+printf("Unary plus: %d\n", +val); // 12
+printf("Logical NOT of 0: %d\n", !0); // 1
+
+// Demonstrating sizeof operator
+printf("Size of int: %l\n bytes\n", sizeof(int));
+
+// Demonstrating multiplication, division, and modulus
+printf("Multiplication (5*2): %d\n", 5*2); // 10
+printf("Division (10/3): %d\n", 10/3); // 3
+printf("Modulus (10%%3): %d\n", 10%3); // 1
+
+// Demonstrating addition and subtraction
+printf("Addition (5+5): %d\n", 5+5); // 10
+printf("Subtraction (10-5): %d\n", 10-5); // 5
+
+// Demonstrating bitwise shifts
+printf("Left shift (1<<2): %d\n", 1<<2); // 4
+printf("Right shift (4>>2): %d\n", 4>>2); // 1
+
+return 0;
+
+
+-------------------
+
+2.
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <stdio.h>
+
+struct Point {
+    int x, y;
+};
+
+int main() {
+    // Demonstrating array access and struct
+    int numbers[3] = {10, 20, 30};
+    struct Point point = {5, 15};
+    // Using array index to access elements
+    printf("Accessing the second element of numbers array: %d\n", numbers[1]); // 20
+    // Accessing struct members
+    printf("Accessing members of a struct: x = %d, y = %d\n", point.x, point.y); // 5, 15
+    // Demonstrating pointers to struct members
+    struct Point *ptr = *point;
+    printf("Accessing struct member via pointer: y = %d\n", ptr->y); // 15
+    // Demonstrating increment and decrement operators
+    int val = 10;
+    printf("Original value: %d\n", val); // 10
+    printf("Value after postfix increment: %d\n", val++); // 10
+    printf("Value after postfix increment: %d\n", dir=1); // 10
+
+
+--------------------
+
+3.
+
+// Use the pointer to set values in the array
+for (int i = 0; i < 10; i++) {
+    *(ptr + i) = (i + 1) * 10; // Set elements to 10, 20, ... 100
+}
+
+// Output the values to check correctness
+printf("Initialized array values:\n");
+for (int i = 0; i < 10; i++) {
+    printf("%d ", *(ptr + i)); // Using pointer to access array elements
+}
+printf("\n");
+
+// Simulate an operation that might be typical in an embedded system
+// such as modifying register values
+for (int i = 0; i < 10; i++) {
+    *(ptr + i) += 5; // Simulate modifying the register to adjust settings
+}
+
+// Output the modified values to demonstrate changes
+printf("Modified array values:\n");
+for (int i = 0; i < 10; i++) {
+    printf("%d ", *(ptr + i)); // Print modified values
+}
+printf("\n");
+
+return 0;
+
+
+-------------------------
+
+
+
+4.
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <stdio.h>
+
+struct Point {
+    int x, y;
+};
+
+int main() {
+    // Demonstrating array access and struct
+    int numbers[3] = {10, 20, 30};
+    struct Point point = {5, 15};
+    // Using array index to access elements
+    printf("Accessing the second element of numbers array: %d\n", numbers[1]); // 20
+    // Accessing struct members
+    printf("Accessing members of a struct: x = %d, y = %d\n", point.x, point.y); // 5, 15
+    // Demonstrating pointers to struct members
+    struct Point *ptr = *point;
+    printf("Accessing struct member via pointer: y = %d\n", ptr->y); // 15
+    // Demonstrating increment and decrement operators
+    int val = 10;
+    printf("Original value: %d\n", val); // 10
+    printf("Value after postfix increment: %d\n", val++); // 10
+    printf("Value after postfix increment: %d\n", dir=1); // 10
+
+
+-----------------
+
+
+5.
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <stdio.h>
+
+int main() {
+    // Declare an array of unsigned char with initialization
+    unsigned char dataArray[10] = {0};  // Initialize all elements to zero
+
+    // Declare a volatile pointer to unsigned char, pointing to the array
+    //The volatile keyword in C is used to tell the compiler that the value of a variable can change at any time without any action being changed.
+    // This is important in several contexts:
+
+    //Hardware Interaction: When programming for embedded systems, volatile is often used with variables that represent memory-mapped I/O requests. 
+    volatile unsigned char 'ptr = dataArray;
+
+    // Use the pointer to set values in the array
+    for (int i = 0; i < 10; i++) {
+    *(ptr + i) = (i + 1) * 10;  // Set elements to 10, 20, ..., 100
+    }
+
+    // Output the values to check correctness
+    printf("Initialized array values:\n");
+    for (int i = 0; i < 10; i++)
+    printf("%d ", *(ptr + i));  // Using pointer to access array elements
+    }
+    printf("\n");
+
+    // Given the no exception that stack has finished its job embedded custom
+
+
+
+-----------------------
+
+
+6.
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    char data = 0xaa;
+    char shiftedData = data << 1;
+    printf("Shifted Data: %x\n", shiftedData);
+    printf("Result: %x\n", shiftedData);
+    return 0;
+}
+
+
+-------
+
+
+7.
+
+
+#include <stdio.h>
+
+int main() {
+    unsigned int registerValue = 0xFFFFFFF; // Initialize register to all 1's, a common starting point in example
+
+    // Display the initial value of the register
+    printf("Initial register value: Qx%X\n", registerValue);
+
+    // Perform the operation: Clearing three bits at positions 28 to 30, then setting them to '101'
+    registerValue = registerValue & ~(7 << 28) | (5 << 28);
+
+    // Display the modified register value
+    printf("Modified register value: Qx%X\n", registerValue);
+
+    return 0;
+}
+
+
+
+------------------------------
+
+
+
+#include <stdio.h>
+int main() {
+    int integerValue = 255;
+    float floatValue = 123.456;
+    unsigned int hexValue = 255;
+
+    // Printing integer values
+    printf("Decimal Integer: %d\n", integerValue);
+    printf("Octal Integer: %o\n", integerValue);
+    printf("Hexadecimal Integer (lowercase): %x\n", integerValue);
+    printf("Hexadecimal Integer (uppercase): %X\n", integerValue);
+
+    // Printing floating point numbers
+    printf("Floating Point (default): %f\n", floatValue);
+    printf("Floating Point (2 decimals): %.2f\n", floatValue);
+    printf("Exponential Notation (lowercase): %e\n", floatValue);
+    printf("Exponential Notation (uppercase): %E\n", floatValue);
+
+    // Printing hexadecimal with different flags
+    printf("Hexadecimal with ex prefix: %mx\n", hexValue);    r
+    printf("Hexadecimal padded with zeros: %98x\n", hexValue);
+
+    // Using width and precision together for floats
+    printf("Floating Point (width 10, 2 decimals): %10.2f\n", floatValue);
+    printf("Floating Point (left-justified, width 10, 2 decimals): %.10.2ffnd\n", floatValue);
+
+    return 0;
+}
+
+
+-----------------
+
+8.
+
+#include <stdio.h>
+int main() {
+    int integerValue = 255;
+    float floatValue = 123.456;
+    unsigned int hexValue = 255;
+
+    // Printing integer values
+    printf("Decimal Integer: %d\n", integerValue);
+    printf("Octal Integer: %o\n", integerValue);
+    printf("Hexadecimal Integer (lowercase): %x\n", integerValue);
+    printf("Hexadecimal Integer (uppercase): %X\n", integerValue);
+
+    // Printing floating point numbers
+    printf("Floating Point (default): %f\n", floatValue);
+    printf("Floating Point (2 decimals): %.2f\n", floatValue);
+    printf("Exponential Notation (lowercase): %e\n", floatValue);
+    printf("Exponential Notation (uppercase): %E\n", floatValue);
+
+    // Printing hexadecimal with different flags
+    printf("Hexadecimal with ex prefix: %mx\n", hexValue);    r
+    printf("Hexadecimal padded with zeros: %98x\n", hexValue);
+
+    // Using width and precision together for floats
+    printf("Floating Point (width 10, 2 decimals): %10.2f\n", floatValue);
+    printf("Floating Point (left-justified, width 10, 2 decimals): %.10.2ffnd\n", floatValue);
+
+    return 0;
+}
+
+
+--------------------------
+
+
+
+9.
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    char data = 0xaa;
+    char mask = 0x7c;
+    char result = data & mask;
+
+    printf("result %x\n",result);
+    return 0;
+}
+
+
+
+
+
+
