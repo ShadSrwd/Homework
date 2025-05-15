@@ -1,0 +1,126 @@
+In C (Create 32-bit Binary and Convert it to decimal and Hexa):
+-----------------------------------------------------------------
+
+
+#include <stdio.h>
+#include <stdint.h>
+
+int main() {
+    // 32-bit binary using 0b (C23 or GCC extension)
+    uint32_t binaryValue = 0b11000011110000111100001111000011;
+
+    // Print decimal and hexadecimal
+    printf("Decimal: %u\n", binaryValue);
+    printf("Hexadecimal: 0x%X\n", binaryValue);
+
+    return 0;
+}
+
+
+********************************************************************
+
+Set bits 24 to 27 (inclusive) of a 32-bit integer to 1:
+---------------------------------------------------------------
+
+
+
+#include <stdio.h>
+#include <stdint.h>
+
+int main() {
+    uint32_t value = 0;  // All bits initially 0
+
+    // Create a mask to set bits 24 to 27
+    uint32_t mask = 0b1111 << 24;
+
+    // Apply the mask using bitwise OR
+    value = value | mask;
+
+    // Print result
+    printf("Decimal: %u\n", value);
+    printf("Hex: 0x%X\n", value);
+    printf("Binary: ");
+    for (int i = 31; i >= 0; i--) {
+        printf("%d", (value >> i) & 1);
+        if (i % 4 == 0) printf(" ");  // Add space every 4 bits
+    }
+
+    return 0;
+}
+
+
+*************************************************************************
+
+
+Bit Manipulation Cheatsheet (Bits 24–27):
+------------------------------------------
+Operation   |	Goal    |	Code (in C)
+----------     ------         ---------------
+Set bits    |	Turn bits 24–27 ON (to 1)   |	`value
+---------     ----------------------------    ----------
+
+Clear bits  |	Turn bits 24–27 OFF (to 0)   |	value &= ~(0b1111 << 24);
+-----------    ----------------------------    ---------------------------
+
+Toggle bits  | 	Flip bits 24–27 (1→0, 0→1)   |	value ^= (0b1111 << 24);
+------------   -----------------------------   ---------------------------
+
+Check if bit is 1   |  	Check if bit 26 is set   |   if (value & (1 << 26))
+------------------    --------------------------    -------------------------
+
+Check if bit is 0   |	Check if bit 26 is clear    |	if (!(value & (1 << 26)))
+-------------------------------------------------------------------------------------------
+
+***************************************
+|= → Set bits (force to 1)            *
+                                      *
+&= ~ → Clear bits (force to 0)        *
+                                      *
+^= → Toggle bits (invert: 1→0, 0→1)   *
+                                      *
+value & (1 << n) → Check bit n        *
+***************************************
+
+***************************************************************************
+#include <stdio.h>                                                        *                        
+#include <stdint.h>                                                       *
+                                                                          *
+int main() {                                                              *
+    // Declare a 32-bit unsigned integer and initialize all bits to 0     *
+    uint32_t value = 0;                                                   * 
+                                                                          *
+    // ----------------------------                                       *
+    // Set bits 24–27 to 1 (ON)                                           *
+    // 0b1111 is 00000000 00000000 00000000 00001111                      *
+    // Shift it left 24 times to move the 1s to bits 24–27:               *
+    // Result: 00001111 00000000 00000000 00000000                        *
+    value |= (0b1111 << 24);                                              *
+    printf("Set:     0x%X\n", value);  // Display the value in hexadecimal*
+                                                                          *
+    // ----------------------------                                       *
+    // Clear bits 24–27 (set them to 0)                                   *
+    // (0b1111 << 24) creates a mask for bits 24–27 like above            *
+    // ~ flips the bits so only bits 24–27 are 0, rest are 1              *
+    // &= keeps all other bits and sets only bits 24–27 to 0              *
+    value &= ~(0b1111 << 24);                                             *******
+    printf("Cleared: 0x%X\n", value);  // Expect 0x0 since all bits are cleared *
+                                                                                *
+    // ----------------------------                                             *
+    // Toggle bits 24–27 (flip them: 0→1, 1→0)                                  *
+    // ^ is XOR: if the bit is 0, it becomes 1; if it's 1, it becomes 0         *
+    value ^= (0b1111 << 24);                                                    *
+    printf("Toggled: 0x%X\n", value);  // Display value after toggle            *
+                                                                                *
+    // ----------------------------                                             *
+    // Check if bit 26 is set (1)                                               *
+    // (1 << 26) shifts a 1 into bit 26 position                                *
+    // If the result of (value & (1 << 26)) is non-zero, then bit 26 is ON      *
+    if (value & (1 << 26)) {                                                    *
+        printf("Bit 26 is 1\n");                                                *
+    } else {                                                                    *
+        printf("Bit 26 is 0\n");                                                *
+    }                                                                           *
+                                                                                *
+    return 0;                                                                   *
+}                                                                               *
+*********************************************************************************
