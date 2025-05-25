@@ -1,0 +1,201 @@
+----------------
+----------------
+DESIGN:
+----------------
+----------------
+
+
+module mini_8086_cpu(
+    inout [3:0] data_bus,    // 4-bit bidirectional data bus
+    input [3:0] addr_bus,    // 4-bit address/control input
+    input clk,               // Clock signal
+    input reset,             // Reset signal (active-high)
+    input rd,                // Read strobe (active-low)
+    input wr,                // Write strobe (active-low)
+    output reg [2:0] flags   // {Carry, Zero, Sign}
+);
+
+// Flag bits
+reg CF, ZF, SF;
+assign flags = {CF, ZF, SF};
+
+// Internal Registers
+reg [3:0] reg_file [3:0];   // 4 registers: R0, R1, R2, R3
+reg [3:0] alu_out;
+reg [3:0] src_data;
+reg [1:0] dest_sel;
+reg [1:0] src_sel;
+reg [1:0] opcode;
+reg write_phase;            // Phase tracker for two-phase write
+
+// Data bus direction control
+reg [3:0] data_out;
+assign data_bus = (!rd) ? data_out : 4'bz;
+
+// Reset behavior
+integer i;
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        for (i = 0; i < 4; i = i + 1)
+            reg_file[i] <= 4'b0000;
+        write_phase <= 0;
+    end else if (!wr) begin
+        if (!write_phase) begin
+            opcode    <= addr_bus[3:2];
+            dest_sel  <= addr_bus[1:0];
+            write_phase <= 1;
+        end else begin
+            src_sel = addr_bus[1:0];
+            src_data = reg_file[src_sel];
+
+            case (opcode)
+                2'b00: {CF, alu_out} = reg_file[dest_sel] + src_data; // ADD
+                2'b01: begin // SUB
+                    {CF, alu_out} = reg_file[dest_sel] - src_data;
+                    CF = (reg_file[dest_sel] < src_data);
+                end
+                2'b10: begin
+                    alu_out = reg_file[dest_sel] & src_data; // AND
+                    CF = 0;
+                end
+                default: alu_out = 4'b0000;
+            endcase
+
+            // Set flags
+            ZF = (alu_out == 4'b0000);
+            SF = alu_out[3];
+
+            // Store result
+            reg_file[dest_sel] <= alu_out;
+            write_phase <= 0;
+        end
+    end
+end
+
+// Read behavior (asynchronous)
+always @(*) begin
+    if (!rd)
+        data_out = reg_file[addr_bus[1:0]];
+    else
+        data_out = 4'bzzzz;
+end
+
+endmodule
+
+
+---------------------
+---------------------
+TESTBENCH:
+---------------------
+---------------------
+
+
+
+`timescale 1ns / 1ps
+
+module mini_8086_cpu_tb;
+
+    // Testbench Signals
+    reg clk;
+    reg reset;
+    reg [3:0] addr_bus;
+    wire [3:0] data_bus;
+    reg rd;
+    reg wr;
+    wire [2:0] flags;
+
+    // Tristate data bus simulation
+    reg [3:0] data_drive;
+    wire [3:0] data_internal;
+    assign data_bus = (!rd) ? 4'bz : data_drive;
+    assign data_internal = data_bus;
+
+    // Instantiate the processor
+    mini_8086_cpu uut (
+        .data_bus(data_bus),
+        .addr_bus(addr_bus),
+        .clk(clk),
+        .reset(reset),
+        .rd(rd),
+        .wr(wr),
+        .flags(flags)
+    );
+
+    // Clock generation
+    always #5 clk = ~clk;
+
+    // Helper task: execute instruction
+    task execute_instruction;
+        input [3:0] phase1;
+        input [3:0] phase2;
+        begin
+            wr = 0;
+            addr_bus = phase1;
+            #10;
+
+            addr_bus = phase2;
+            #10;
+
+            wr = 1;
+            #10;
+        end
+    endtask
+
+    // Helper task: read register
+    task read_register;
+        input [1:0] reg_id;
+        begin
+            rd = 0;
+            addr_bus = {2'b00, reg_id};
+            #10;
+            $display("Read R%d = %d", reg_id, data_internal);
+            rd = 1;
+        end
+    endtask
+
+    // Test sequence
+    initial begin
+        $display("---- MINI 8086 CPU TESTBENCH ----");
+
+        // Initialize
+        clk = 0; rd = 1; wr = 1;
+        reset = 1; addr_bus = 0; data_drive = 0;
+        #10;
+        reset = 0;
+
+        // Manually preload some registers
+        uut.reg_file[0] = 4;  // R0 = 4
+        uut.reg_file[1] = 3;  // R1 = 3
+        uut.reg_file[2] = 7;  // R2 = 7
+        uut.reg_file[3] = 2;  // R3 = 2
+
+        // ADD R0 ← R0 + R1
+        $display("\n[ADD R0 = R0 + R1]");
+        execute_instruction(4'b0100, 4'b0001); // Opcode=00, Dest=00, Src=01
+        read_register(2'b00);
+        $display("Flags (CF ZF SF): %b", flags);
+
+        // SUB R2 ← R2 - R3
+        $display("\n[SUB R2 = R2 - R3]");
+        execute_instruction(4'b0110, 4'b0011); // Opcode=01, Dest=10, Src=11
+        read_register(2'b10);
+        $display("Flags (CF ZF SF): %b", flags);
+
+        // AND R1 ← R1 & R3
+        $display("\n[AND R1 = R1 & R3]");
+        execute_instruction(4'b1010, 4'b0011); // Opcode=10, Dest=01, Src=11
+        read_register(2'b01);
+        $display("Flags (CF ZF SF): %b", flags);
+
+        // Final values
+        $display("\nFinal Register Values:");
+        read_register(2'b00);
+        read_register(2'b01);
+        read_register(2'b10);
+        read_register(2'b11);
+
+        $finish;
+    end
+
+endmodule
+
