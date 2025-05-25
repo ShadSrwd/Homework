@@ -1,0 +1,207 @@
+design ======
+=============
+ 
+ 
+module mini_8086_cpu(
+    inout [3:0] data_bus,    // Bidirectional data bus
+    input [3:0] addr_bus,    // Address bus
+    input clk,               // System clock
+    input reset,             // Active-high reset
+    input rd,                // Read strobe (active low)
+    input wr,                // Write strobe (active low)
+    output [2:0] flags       // Status flags: {CF, ZF, SF}
+);
+ 
+    // Internal signals
+    reg [3:0] reg_file [0:3];    // 4 registers x 4 bits
+    reg [3:0] alu_result;
+    reg [2:0] flag_reg;
+    reg [3:0] data_out;
+    reg [1:0] opcode_reg;
+    reg [1:0] dest_reg;
+    reg phase;                   // 0 = phase 1, 1 = phase 2
+    
+    // Tri-state buffer for bidirectional data_bus
+    assign data_bus = (!rd) ? data_out : 4'bzzzz;
+    assign flags = flag_reg;
+    
+    // Register file operations and bus protocol
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            // Reset all registers to zero
+            reg_file[0] <= 4'b0000;
+            reg_file[1] <= 4'b0000;
+            reg_file[2] <= 4'b0000;
+            reg_file[3] <= 4'b0000;
+            phase <= 1'b0;
+            flag_reg <= 3'b000;
+        end else if (!wr) begin
+            // Two-phase write operation
+            if (!phase) begin
+                // Phase 1: Capture opcode and destination register
+                opcode_reg <= data_bus[3:2];
+                dest_reg <= data_bus[1:0];
+                phase <= 1'b1;
+            end else begin
+                // Phase 2: Perform ALU operation and update register
+                phase <= 1'b0;
+                case (opcode_reg)
+                    2'b00: begin // ADD
+                        {flag_reg[2], reg_file[dest_reg]} <= reg_file[dest_reg] + reg_file[data_bus[1:0]];
+                    end
+                    2'b01: begin // SUB  
+                        reg_file[dest_reg] <= reg_file[dest_reg] - reg_file[data_bus[1:0]];
+                        flag_reg[2] <= (reg_file[dest_reg] < reg_file[data_bus[1:0]]); // Borrow flag
+                    end
+                    2'b10: begin // AND
+                        reg_file[dest_reg] <= reg_file[dest_reg] & reg_file[data_bus[1:0]];
+                        flag_reg[2] <= 1'b0; // No carry for AND
+                    end
+                    default: begin
+                        reg_file[dest_reg] <= reg_file[dest_reg]; // NOP
+                        flag_reg[2] <= 1'b0;
+                    end
+                endcase
+                
+                // Update Zero Flag and Sign Flag
+                alu_result = (opcode_reg == 2'b00) ? reg_file[dest_reg] + reg_file[data_bus[1:0]] :
+                            (opcode_reg == 2'b01) ? reg_file[dest_reg] - reg_file[data_bus[1:0]] :
+                            (opcode_reg == 2'b10) ? reg_file[dest_reg] & reg_file[data_bus[1:0]] : 4'b0000;
+                            
+                flag_reg[1] <= (alu_result == 4'b0000); // Zero Flag
+                flag_reg[0] <= alu_result[3];            // Sign Flag (MSB)
+            end
+        end
+    end
+    
+    // Asynchronous read operation
+    always @(*) begin
+        if (!rd) begin
+            data_out = reg_file[addr_bus[1:0]];
+        end else begin
+            data_out = 4'bzzzz;
+        end
+    end
+ 
+endmodule
+ 
+=================
+test ============
+=================
+ 
+ 
+`timescale 1ns/1ps
+ 
+module tb_mini_8086_cpu;
+    // Testbench signals
+    reg [3:0] data_in;
+    wire [3:0] data_bus;
+    reg [3:0] addr_bus;
+    reg clk;
+    reg reset;
+    reg rd;
+    reg wr;
+    wire [2:0] flags;
+    
+    // Bidirectional bus control
+    assign data_bus = (!wr) ? data_in : 4'bzzzz;
+    
+    // Instantiate the processor
+    mini_8086_cpu uut (
+        .data_bus(data_bus),
+        .addr_bus(addr_bus),
+        .clk(clk),
+        .reset(reset),
+        .rd(rd),
+        .wr(wr),
+        .flags(flags)
+    );
+    
+    // Clock generation
+    initial begin
+        clk = 0;
+        forever #5 clk = ~clk;
+    end
+    
+    initial begin
+        // Initialize signals
+        data_in = 4'b0000;
+        addr_bus = 4'b0000;
+        reset = 1'b0;
+        rd = 1'b1;
+        wr = 1'b1;
+        
+        // Apply reset
+        reset = 1'b1;
+        #20;
+        reset = 1'b0;
+        #10;
+        
+        // Test 1: Register Initialization
+        $display("=== Test 1: Register Initialization ===");
+        rd = 1'b0;
+        addr_bus = 4'b0000; #10; $display("R0 = %b", data_bus);
+        addr_bus = 4'b0001; #10; $display("R1 = %b", data_bus);
+        addr_bus = 4'b0010; #10; $display("R2 = %b", data_bus);
+        addr_bus = 4'b0011; #10; $display("R3 = %b", data_bus);
+        rd = 1'b1; #10;
+        
+        // Load test data into registers
+        uut.reg_file[0] = 4'b0011; // R0 = 3
+        uut.reg_file[1] = 4'b0010; // R1 = 2
+        uut.reg_file[2] = 4'b0001; // R2 = 1
+        uut.reg_file[3] = 4'b0100; // R3 = 4
+        
+        // Test 2: ADD Operation (R0 = R0 + R1)
+        $display("=== Test 2: ADD Operation (R0 = R0 + R1) ===");
+        wr = 1'b0;
+        data_in = 4'b0100; // Phase 1: ADD to R0
+        @(posedge clk); #1;
+        data_in = 4'b0001; // Phase 2: Use R1
+        @(posedge clk); #1;
+        wr = 1'b1; #10;
+        
+        rd = 1'b0; addr_bus = 4'b0000; #10;
+        $display("R0 = %b, Flags = %b", data_bus, flags);
+        rd = 1'b1; #10;
+        
+        // Test 3: SUB Operation (R2 = R2 - R3)
+        $display("=== Test 3: SUB Operation (R2 = R2 - R3) ===");
+        wr = 1'b0;
+        data_in = 4'b0110; // Phase 1: SUB to R2
+        @(posedge clk); #1;
+        data_in = 4'b0011; // Phase 2: Use R3
+        @(posedge clk); #1;
+        wr = 1'b1; #10;
+        
+        rd = 1'b0; addr_bus = 4'b0010; #10;
+        $display("R2 = %b, Flags = %b", data_bus, flags);
+        rd = 1'b1; #10;
+        
+        // Test 4: AND Operation (R1 = R1 & R3)
+        $display("=== Test 4: AND Operation (R1 = R1 & R3) ===");
+        uut.reg_file[1] = 4'b1010; // R1 = 10
+        uut.reg_file[3] = 4'b1100; // R3 = 12
+        
+        wr = 1'b0;
+        data_in = 4'b1001; // Phase 1: AND to R1
+        @(posedge clk); #1;
+        data_in = 4'b0011; // Phase 2: Use R3
+        @(posedge clk); #1;
+        wr = 1'b1; #10;
+        
+        rd = 1'b0; addr_bus = 4'b0001; #10;
+        $display("R1 = %b, Flags = %b", data_bus, flags);
+        rd = 1'b1; #10;
+        
+        $display("=== All Tests Completed ===");
+        $finish;
+    end
+    
+    // Waveform dump
+    initial begin
+        $dumpfile("mini_8086_cpu.vcd");
+        $dumpvars(0, tb_mini_8086_cpu);
+    end
+ 
+endmodule
