@@ -1,0 +1,156 @@
+------------------------
+------------------------
+DESIGN:
+------------------------
+------------------------
+
+
+
+`timescale 1ns/1ps
+
+module processor (
+    input clk,
+    input rst
+);
+
+    // ----- Instruction memory and PC -----
+    reg [31:0] instr_mem [0:15];  // 16 instructions
+    reg [31:0] PC;
+
+    // ----- Register file (8 registers) -----
+    reg [31:0] reg_file [0:7];
+
+    // ----- Data memory -----
+    reg [31:0] data_mem [0:31];
+
+    // ----- Pipeline registers -----
+    reg [31:0] IF_ID_instr, IF_ID_PC;
+    reg [2:0]  ID_EX_rs1, ID_EX_rs2, ID_EX_rd;
+    reg [3:0]  ID_EX_opcode;
+    reg [31:0] ID_EX_A, ID_EX_B;
+
+    reg [2:0]  EX_MEM_rd;
+    reg [31:0] EX_MEM_result;
+
+    reg [2:0]  MEM_WB_rd;
+    reg [31:0] MEM_WB_result;
+
+    // ----- ALU -----
+    function [31:0] ALU;
+        input [31:0] A, B;
+        input [3:0] opcode;
+        begin
+            case (opcode)
+                4'b0000: ALU = A + B;   // ADD
+                4'b0001: ALU = A - B;   // SUB
+                4'b0010: ALU = A & B;   // AND
+                4'b0011: ALU = A | B;   // OR
+                default: ALU = 0;
+            endcase
+        end
+    endfunction
+
+    // ----- Main pipeline logic -----
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            PC <= 0;
+
+            // Reset pipeline registers
+            IF_ID_instr <= 0;
+            IF_ID_PC <= 0;
+            ID_EX_rs1 <= 0; ID_EX_rs2 <= 0; ID_EX_rd <= 0; ID_EX_opcode <= 0;
+            ID_EX_A <= 0; ID_EX_B <= 0;
+            EX_MEM_rd <= 0; EX_MEM_result <= 0;
+            MEM_WB_rd <= 0; MEM_WB_result <= 0;
+
+        end else begin
+            // ----- IF stage -----
+            IF_ID_instr <= instr_mem[PC[5:2]];
+            IF_ID_PC <= PC;
+            PC <= PC + 4;
+
+            // ----- ID stage -----
+            ID_EX_opcode <= IF_ID_instr[31:28];
+            ID_EX_rd     <= IF_ID_instr[27:25];
+            ID_EX_rs1    <= IF_ID_instr[24:22];
+            ID_EX_rs2    <= IF_ID_instr[21:19];
+            ID_EX_A      <= reg_file[IF_ID_instr[24:22]];
+            ID_EX_B      <= reg_file[IF_ID_instr[21:19]];
+
+            // ----- EX stage -----
+            EX_MEM_result <= ALU(ID_EX_A, ID_EX_B, ID_EX_opcode);
+            EX_MEM_rd     <= ID_EX_rd;
+
+            // ----- MEM stage (No real memory op used here for simplicity) -----
+            MEM_WB_result <= EX_MEM_result;
+            MEM_WB_rd     <= EX_MEM_rd;
+
+            // ----- WB stage -----
+            reg_file[MEM_WB_rd] <= MEM_WB_result;
+        end
+    end
+endmodule
+
+
+--------------------------
+--------------------------
+TESTBENCH:
+--------------------------
+--------------------------
+
+
+`timescale 1ns/1ps
+
+module testbench;
+
+    reg clk, rst;
+
+    // Instantiate the processor
+    processor uut (
+        .clk(clk),
+        .rst(rst)
+    );
+
+    // Clock generation
+    always #5 clk = ~clk;
+
+    initial begin
+        $dumpfile("waveform.vcd");
+        $dumpvars(0, testbench);
+
+        // Init
+        clk = 0;
+        rst = 1;
+        #10 rst = 0;
+
+        // Preload instruction memory
+        // Format: [31:28]=opcode, [27:25]=rd, [24:22]=rs1, [21:19]=rs2, [18:0]=unused
+
+        // instr_mem[0] = ADD R1 = R2 + R3
+        uut.instr_mem[0] = {4'b0000, 3'd1, 3'd2, 3'd3, 19'd0};
+
+        // instr_mem[1] = SUB R4 = R1 - R3
+        uut.instr_mem[1] = {4'b0001, 3'd4, 3'd1, 3'd3, 19'd0};
+
+        // instr_mem[2] = AND R5 = R4 & R2
+        uut.instr_mem[2] = {4'b0010, 3'd5, 3'd4, 3'd2, 19'd0};
+
+        // instr_mem[3] = OR R6 = R5 | R3
+        uut.instr_mem[3] = {4'b0011, 3'd6, 3'd5, 3'd3, 19'd0};
+
+        // Initialize registers
+        uut.reg_file[2] = 32'd10; // R2
+        uut.reg_file[3] = 32'd5;  // R3
+
+        // Run simulation
+        #100;
+
+        // Show result
+        $display("R1 = %d", uut.reg_file[1]);  // Expected: 15
+        $display("R4 = %d", uut.reg_file[4]);  // Expected: 10
+        $display("R5 = %d", uut.reg_file[5]);  // Expected: 10 & 10 = 10
+        $display("R6 = %d", uut.reg_file[6]);  // Expected: 10 | 5 = 15
+
+        $finish;
+    end
+endmodule
