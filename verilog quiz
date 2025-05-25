@@ -1,0 +1,108 @@
+module simple_system(
+    input clk,
+    input rst,
+    input select,
+    input memory_write_en,  //Memory Write Enable
+    input [7:0] regA,
+    input [7:0] regB,
+    input [7:0] Add,
+    output reg [7:0] memory_out
+);
+
+    reg [7:0] Register_A;
+    reg [7:0] Register_B;
+    reg [7:0] memory [0:255];
+    
+    wire [7:0] mux_out;
+    wire [7:0] alu_out;
+    
+    assign mux_out = (select == 0) ? Register_A : Register_B;
+    assign alu_out = Register_A + Register_B;
+    
+      always @(posedge clk) begin
+        if (rst)
+          begin
+            Register_A <= 8'b0;
+            Register_B <= 8'b0;
+        end 
+        
+        else 
+          begin
+            Register_A <= regA_in;
+            Register_B <= regB_in;
+            
+            if (mem_write_en) begin
+                memory[address] <= alu_out;
+            end
+        end
+    end
+    
+    always @(*) begin
+        memory_out = memory[address];
+    end
+
+endmodule
+  
+--
+-----------------------------------------------------------------
+TESTBENCH:
+---------------------------------------------------------------------
+
+module simple_system_tb;
+ // Inputs
+ reg clk;
+ reg rst;
+ reg select;
+ reg mem_write_en;
+ reg [7:0] regA_in;
+ reg [7:0] regB_in;
+ reg [7:0] address;
+ // Output
+ wire [7:0] memory_out;
+ // Instantiate the system under test
+ simple_system uut (
+ .clk(clk),
+ .rst(rst),
+ .select(select),
+ .mem_write_en(mem_write_en),
+ .regA_in(regA_in),
+ .regB_in(regB_in),
+ .address(address),
+ .memory_out(memory_out)
+ );
+ // Clock generation: toggle every 5ns (period = 10ns)
+ always #5 clk = ~clk;
+ // Test sequence
+ initial begin
+ // Initial values
+ clk = 0;
+ rst = 1;
+ select = 0;
+ mem_write_en = 0;
+ regA_in = 0;
+ regB_in = 0;
+ address = 0;
+ // Apply reset
+ #10;
+ rst = 0;
+ // Load inputs
+ regA_in = 8'h0A; // 10 in decimal
+ regB_in = 8'h05; // 5 in decimal
+ #10;
+ // Select register A (optional, based on your design)
+ select = 0;
+ #10;
+ // Write ALU result into memory
+ address = 8'h01; // Memory address 1
+ mem_write_en = 1; // Enable write
+ #10;
+ mem_write_en = 0; // Disable write
+ // Wait and observe
+ #20;
+ // Display the result
+ $display("Memory[1] = %h", memory_out);
+ // End simulation
+ $stop;
+ end
+endmodule
+
