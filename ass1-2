@@ -1,0 +1,114 @@
+// ===========================
+//  Assignment 1: Bus Structure
+// ===========================
+
+// File: design.v
+
+module register8(input clk, clr, ld, input [7:0] d, output reg [7:0] q);
+    always @(posedge clk)
+        if (clr) q <= 8'b0;
+        else if (ld) q <= d;
+endmodule
+
+module ram(input clk, we, input [3:0] addr, input [7:0] d, output reg [7:0] q);
+    reg [7:0] mem [0:15];
+    always @(posedge clk) begin
+        if (we) mem[addr] <= d;
+        q <= mem[addr];
+    end
+endmodule
+
+module bus_structure(input clk, clr);
+    reg [7:0] bus;
+
+    wire [7:0] ac_out, dr_out, mem_out;
+    reg [7:0] data_in;
+    reg ld_ac, ld_dr, mem_we;
+    reg [3:0] mem_addr;
+
+    register8 AC(clk, clr, ld_ac, bus, ac_out);
+    register8 DR(clk, clr, ld_dr, bus, dr_out);
+    ram MEM(clk, mem_we, mem_addr, bus, mem_out);
+
+    initial begin
+        ld_ac = 0; ld_dr = 0; mem_we = 0; mem_addr = 4'b0010;
+        #5  bus = 8'h55; ld_ac = 1;
+        #5  ld_ac = 0;
+        #10 bus = ac_out; ld_dr = 1;
+        #5  ld_dr = 0;
+        #10 bus = dr_out; mem_we = 1;
+        #5  mem_we = 0;
+        #10 bus = mem_out;
+    end
+endmodule
+
+// ===========================
+// File: testbench.v
+
+module test;
+    reg clk = 0;
+    reg clr = 0;
+    always #5 clk = ~clk;
+
+    bus_structure uut(clk, clr);
+
+    initial begin
+        clr = 1; #10;
+        clr = 0;
+        #100;
+        $finish;
+    end
+endmodule
+
+
+// ===========================
+//  Assignment 2: Pipelined Processor (Simplified)
+// ===========================
+
+// File: design.v
+
+module pipeline_processor(input clk);
+    reg [7:0] instr_mem [0:3];
+    reg [7:0] regfile [0:3];
+
+    // Pipeline registers
+    reg [7:0] IF_ID, ID_EX, EX_WB;
+    reg [1:0] rs, rt, rd;
+
+    integer pc = 0;
+
+    // ALU operation (ADD)
+    always @(posedge clk) begin
+        // Fetch
+        IF_ID <= instr_mem[pc];
+        pc <= pc + 1;
+
+        // Decode
+        rs <= IF_ID[7:6];
+        rt <= IF_ID[5:4];
+        rd <= IF_ID[3:2];
+        ID_EX <= regfile[IF_ID[7:6]] + regfile[IF_ID[5:4]];
+
+        // Execute
+        EX_WB <= ID_EX;
+
+        // Write-back
+        regfile[rd] <= EX_WB;
+    end
+
+    initial begin
+        regfile[0] = 8'd10;
+        regfile[1] = 8'd20;
+        instr_mem[0] = 8'b00011000; // ADD R0, R1 => R2
+        #50 $finish;
+    end
+endmodule
+
+// File: testbench.v
+
+module test_pipeline;
+    reg clk = 0;
+    always #5 clk = ~clk;
+
+    pipeline_processor uut(clk);
+endmodule
